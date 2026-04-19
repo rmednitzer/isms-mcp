@@ -61,7 +61,9 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:
         items = ctx.filter_classification(items, field="classification")
         items = ctx.filter_classification(items, field="classification_handled")
         page_items, pagination = paginate(items, page, page_size)
-        result = RegisterQueryResult(register=register, items=page_items, pagination=pagination)
+        result = RegisterQueryResult(
+            register_name=register, items=page_items, pagination=pagination
+        )
         audit.record(
             tool="register_query",
             workspace=str(ctx.workspace.root),

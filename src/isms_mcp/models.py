@@ -142,7 +142,7 @@ RegisterName = Literal["assets", "facilities", "networks", "suppliers", "data"]
 
 
 class RegisterQuery(BaseModel):
-    register: RegisterName
+    register_name: RegisterName = Field(alias="register")
     id_prefix: str | None = None
     owner_role: str | None = None
     in_scope: bool | None = None
@@ -151,6 +151,8 @@ class RegisterQuery(BaseModel):
     free_text: str | None = None
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=50, ge=1, le=200)
+
+    model_config = {"populate_by_name": True}
 
 
 class RegisterEntry(BaseModel):
@@ -162,9 +164,11 @@ class RegisterEntry(BaseModel):
 
 
 class RegisterQueryResult(BaseModel):
-    register: RegisterName
+    register_name: RegisterName = Field(alias="register")
     items: list[dict[str, Any]]
     pagination: Pagination
+
+    model_config = {"populate_by_name": True}
 
 
 # =========================================================================
