@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from isms_mcp import audit
 from isms_mcp.context import ServerContext
@@ -16,9 +16,9 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:
     @mcp.tool()
-    def control_coverage(
+    def control_coverage(  # noqa: PLR0912
         theme: ThemeName | None = None,
         applicable_only: bool = True,
     ) -> CoverageReport:
@@ -36,7 +36,7 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
         scope = applicable if applicable_only else controls
 
         plan = load_evidence_plan(ctx.workspace)
-        tasks_by_control: dict[str, list[dict]] = {}
+        tasks_by_control: dict[str, list[dict[str, Any]]] = {}
         for t in plan:
             for cid in t.get("control_ids") or []:
                 tasks_by_control.setdefault(str(cid), []).append(t)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from isms_mcp.workspace import WorkspaceRoot
 
@@ -20,9 +20,9 @@ class ServerContext:
 
     def filter_classification(
         self,
-        items: list[dict],
+        items: list[dict[str, Any]],
         field: str = "classification",
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Drop ``classification: restricted`` entries when the active transport disallows them."""
         if self.allow_restricted:
             return items

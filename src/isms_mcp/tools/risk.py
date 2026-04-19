@@ -23,7 +23,7 @@ def _rating_at_least(value: str | None, threshold: str) -> bool:
     return _RATING_ORDER.get(head, -1) >= _RATING_ORDER[threshold]
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:
     @mcp.tool()
     def risk_query(
         status: RiskStatus | None = None,

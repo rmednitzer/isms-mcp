@@ -1,17 +1,18 @@
 """Workspace root: discovery, canonicalisation, hardened safe reads.
 
 The single most security-sensitive module in the project. Every filesystem
-access for ISMS content goes through ``WorkspaceRoot.safe_read`` or
-``WorkspaceRoot.safe_iterdir``; both reject paths that resolve outside the
-four allow-listed subtrees after symlink resolution.
+access for ISMS content goes through ``WorkspaceRoot.safe_read_text``,
+``WorkspaceRoot.safe_iterdir``, or ``WorkspaceRoot.safe_rglob``; these
+methods reject paths that resolve outside the four allow-listed subtrees
+after symlink resolution.
 """
 
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
 
 from isms_mcp.exceptions import PathEscape, WorkspaceNotConfigured
 
@@ -29,19 +30,20 @@ class WorkspaceRoot:
     def from_env(cls, value: str | None = None) -> WorkspaceRoot:
         raw = value if value is not None else os.environ.get("ISMS_MCP_WORKSPACE")
         if not raw:
-            raise WorkspaceNotConfigured(
-                "ISMS_MCP_WORKSPACE environment variable is not set."
-            )
+            raise WorkspaceNotConfigured("ISMS_MCP_WORKSPACE environment variable is not set.")
         try:
             root = Path(raw).resolve(strict=True)
         except FileNotFoundError as exc:
-            raise WorkspaceNotConfigured(
-                f"workspace path does not exist: {raw}"
-            ) from exc
+            raise WorkspaceNotConfigured(f"workspace path does not exist: {raw}") from exc
         if not root.is_dir():
             raise WorkspaceNotConfigured(f"workspace path is not a directory: {root}")
-        prefixes = tuple((root / sub).resolve() for sub in ALLOWED_SUBTREES)
-        return cls(root=root, allowed_prefixes=prefixes)
+        prefixes: list[Path] = []
+        for sub in ALLOWED_SUBTREES:
+            prefix = (root / sub).resolve()
+            if not prefix.is_relative_to(root):
+                raise WorkspaceNotConfigured(f"allow-listed subtree escapes workspace root: {sub}")
+            prefixes.append(prefix)
+        return cls(root=root, allowed_prefixes=tuple(prefixes))
 
     def _resolve_inside(self, rel_path: str | Path) -> Path:
         """Resolve ``rel_path`` against the workspace and verify allow-list.
@@ -76,7 +78,7 @@ class WorkspaceRoot:
         target = self._resolve_inside(rel_path)
         if not target.is_file():
             raise FileNotFoundError(f"not a regular file: {rel_path}")
-        with open(target, "r", encoding="utf-8") as fh:
+        with open(target, encoding="utf-8") as fh:
             return fh.read()
 
     def exists(self, rel_path: str | Path) -> bool:
@@ -127,14 +129,17 @@ class WorkspaceRoot:
                 except ValueError:
                     continue
 
-    def read_git_head(self) -> str | None:
+    def read_git_head(self) -> str | None:  # noqa: PLR0911
         """Best-effort read of ``.git/HEAD``; tolerate absence and shallow forms.
 
         Never shells out. Reads the plain text of ``.git/HEAD`` and, if it is
         a symbolic ref (``ref: refs/heads/main``), reads the dereferenced ref
         file. Returns ``None`` if anything goes wrong.
         """
-        head = self.root / ".git" / "HEAD"
+        git_dir = (self.root / ".git").resolve()
+        if not git_dir.is_relative_to(self.root) or not git_dir.is_dir():
+            return None
+        head = git_dir / "HEAD"
         if not head.is_file():
             return None
         try:
@@ -143,8 +148,10 @@ class WorkspaceRoot:
             return None
         if text.startswith("ref:"):
             ref_name = text.split(":", 1)[1].strip()
-            ref_file = self.root / ".git" / ref_name
-            if not ref_file.is_file():
+            if not ref_name.startswith("refs/") or ".." in ref_name or Path(ref_name).is_absolute():
+                return None
+            ref_file = (git_dir / ref_name).resolve()
+            if not ref_file.is_relative_to(git_dir) or not ref_file.is_file():
                 return None
             try:
                 return ref_file.read_text(encoding="utf-8").strip() or None

@@ -69,11 +69,6 @@ guide.
 | `evidence_age` | Evidence task ages, staleness against cadence, never-collected list. |
 | `control_coverage` | SoA-wide coverage report (implementation, evidence, recency). |
 | `regulatory_calendar` | Upcoming milestones with obligations and readiness artefacts. |
-| `impact_probe` | Blast radius of a law or standard across the ISMS. |
-| `crosswalk` | Cross-framework equivalents for one control. |
-| `decision_search` | Substring search over `docs/decisions/DEC-*.md`. |
-| `source_registry` | Tracked authoritative sources with computed next-check dates. |
-| `validate_workspace` | Read-only structural validation, returns results instead of exit codes. |
 
 ## Configuration
 

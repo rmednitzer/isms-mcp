@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:
     @mcp.tool()
     def evidence_age(
         state: EvidenceStateFilter = "stale",
@@ -35,7 +35,7 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
         items: list[EvidenceAgeEntry] = []
         for task in plan:
             tid = str(task.get("id", ""))
-            cids = list(task.get("control_ids") or [])
+            cids = [str(cid) for cid in (task.get("control_ids") or []) if cid is not None]
             cadence = task.get("cadence_days")
             owner = task.get("owner_role")
             sop_ref = task.get("sop_ref")
@@ -51,14 +51,17 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
             else:
                 age = (today - d).days
                 row_state = "stale" if (cadence is not None and age > int(cadence)) else "ok"
-            if state != "all" and row_state != state:
+            if state not in {"all", row_state}:
                 continue
+            last_collected_at = (
+                str(att.get("collected_at")) if att and att.get("collected_at") else None
+            )
             items.append(
                 EvidenceAgeEntry(
                     task_id=tid,
                     control_ids=cids,
                     cadence_days=int(cadence) if cadence is not None else None,
-                    last_collected_at=str(att.get("collected_at")) if att and att.get("collected_at") else None,
+                    last_collected_at=last_collected_at,
                     age_days=age,
                     state=row_state,
                     sop_ref=sop_ref,

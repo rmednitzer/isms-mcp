@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,7 @@ def record(
         directory = _log_dir()
         directory.mkdir(parents=True, exist_ok=True)
         entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "tool": tool,
             "workspace": workspace,
             "transport": transport,

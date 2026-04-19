@@ -24,7 +24,8 @@ def load_decisions(workspace: WorkspaceRoot) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for path in workspace.safe_rglob(DECISIONS_DIR, "DEC-*.md"):
         try:
-            text = open(path, "r", encoding="utf-8").read()
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
         except OSError:
             continue
         rel = str(Path(path).relative_to(workspace.root)) if Path(path).is_absolute() else str(path)

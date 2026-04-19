@@ -1,4 +1,4 @@
-"""Load the six governance registers: assets, facilities, networks, suppliers, data."""
+"""Load the five governance registers: assets, facilities, networks, suppliers, data."""
 
 from __future__ import annotations
 
@@ -45,7 +45,9 @@ def _resolve_path(workspace: WorkspaceRoot, register: str) -> str | None:
     return None
 
 
-def load_register(workspace: WorkspaceRoot, register: str) -> tuple[list[dict[str, Any]], str | None]:
+def load_register(
+    workspace: WorkspaceRoot, register: str
+) -> tuple[list[dict[str, Any]], str | None]:
     """Return ``(items, source_path)``; items is empty if the register is absent."""
     if register not in REGISTERS:
         raise KeyError(f"unknown register: {register}")

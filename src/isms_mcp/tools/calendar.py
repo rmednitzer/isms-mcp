@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def _coerce_date(value) -> date | None:
+def _coerce_date(value: object) -> date | None:
     if isinstance(value, date):
         return value
     if isinstance(value, str):
@@ -25,7 +25,7 @@ def _coerce_date(value) -> date | None:
     return None
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:
     @mcp.tool()
     def regulatory_calendar(
         within_days: int | None = None,
@@ -59,7 +59,9 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
                     date=d.isoformat() if d else str(m.get("date", "")),
                     confidence=m.get("confidence"),
                     obligations_triggered=list(m.get("obligations_triggered") or []),
-                    artifacts_requiring_readiness=list(m.get("artifacts_requiring_readiness") or []),
+                    artifacts_requiring_readiness=list(
+                        m.get("artifacts_requiring_readiness") or []
+                    ),
                     review_at=str(m["review_at"]) if m.get("review_at") else None,
                     responsible_role=m.get("responsible_role"),
                     days_until_due=days_until,

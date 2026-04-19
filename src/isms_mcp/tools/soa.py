@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from datetime import date
+from typing import TYPE_CHECKING, Any, cast
 
 from isms_mcp import audit
 from isms_mcp._pagination import paginate
@@ -35,23 +36,38 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def _to_soa_entry(raw: dict) -> SoaEntry:
+def _coerce_theme(value: object) -> ThemeName | None:
+    if value in {"organisational", "people", "physical", "technological"}:
+        return cast(ThemeName, value)
+    return None
+
+
+def _to_soa_entry(raw: dict[str, Any]) -> SoaEntry:
+    theme = raw.get("theme")
+    applicable = raw.get("applicable")
+    status = raw.get("status")
+    evidence_task_ids = raw.get("evidence_task_ids") or []
+
     return SoaEntry(
-        id=raw.get("id", ""),
-        title=raw.get("title", ""),
-        theme=raw.get("theme"),
-        applicable=raw.get("applicable", "yes"),
-        justification_ref=raw.get("justification_ref"),
-        exclusion_ref=raw.get("exclusion_ref"),
-        implementation_ref=raw.get("implementation_ref"),
-        status=raw.get("status", "not_assessed"),
-        evidence_task_ids=list(raw.get("evidence_task_ids") or []),
-        owner=raw.get("owner"),
+        id=str(raw.get("id") or ""),
+        title=str(raw.get("title") or ""),
+        theme=_coerce_theme(theme),
+        applicable=applicable if applicable in {"yes", "no"} else "yes",
+        justification_ref=str(raw["justification_ref"]) if raw.get("justification_ref") else None,
+        exclusion_ref=str(raw["exclusion_ref"]) if raw.get("exclusion_ref") else None,
+        implementation_ref=(
+            str(raw["implementation_ref"]) if raw.get("implementation_ref") else None
+        ),
+        status=status
+        if status in {"not_assessed", "planned", "implementing", "implemented", "monitored"}
+        else "not_assessed",
+        evidence_task_ids=[str(task_id) for task_id in evidence_task_ids if task_id is not None],
+        owner=str(raw["owner"]) if raw.get("owner") else None,
         last_review_date=str(raw["last_review_date"]) if raw.get("last_review_date") else None,
     )
 
 
-def _crosswalk_for(control_id: str, mapping: list[dict]) -> CrosswalkSlice:
+def _crosswalk_for(control_id: str, mapping: list[dict[str, Any]]) -> CrosswalkSlice:
     for entry in mapping:
         if entry.get("iso27001") == control_id:
             return CrosswalkSlice(
@@ -63,7 +79,7 @@ def _crosswalk_for(control_id: str, mapping: list[dict]) -> CrosswalkSlice:
     return CrosswalkSlice(iso27001=[control_id])
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:  # noqa: PLR0915
     @mcp.tool()
     def soa_query(
         control_id_prefix: str | None = None,
@@ -81,7 +97,7 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
         owner role, evidence task IDs, and the implementation reference.
         """
         soa = load_soa(ctx.workspace) or {}
-        controls: list[dict] = list(soa.get("controls") or [])
+        controls: list[dict[str, Any]] = list(soa.get("controls") or [])
         if control_id_prefix:
             controls = [c for c in controls if str(c.get("id", "")).startswith(control_id_prefix)]
         if theme is not None:
@@ -123,10 +139,8 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
         attestation, the minimum cadence across bound tasks, a stale flag,
         and the cross-framework crosswalk for the control.
         """
-        from datetime import date
-
         soa = load_soa(ctx.workspace) or {}
-        controls = list(soa.get("controls") or [])
+        controls: list[dict[str, Any]] = list(soa.get("controls") or [])
         soa_raw = next((c for c in controls if c.get("id") == control_id), None)
         soa_entry = _to_soa_entry(soa_raw) if soa_raw else None
 
@@ -136,8 +150,10 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
         bound = [t for t in plan if control_id in (t.get("control_ids") or [])]
         evidence_tasks = [
             EvidenceTaskSummary(
-                id=t.get("id", ""),
-                control_ids=list(t.get("control_ids") or []),
+                id=str(t.get("id") or ""),
+                control_ids=[
+                    str(task_id) for task_id in (t.get("control_ids") or []) if task_id is not None
+                ],
                 cadence_days=t.get("cadence_days"),
                 mode=t.get("mode"),
                 owner_role=t.get("owner_role"),
@@ -177,15 +193,15 @@ def register(mcp: "FastMCP", ctx: ServerContext) -> None:
             d = collected_date(latest_raw)
             if d is not None:
                 days_since = (date.today() - d).days
-        stale = bool(
-            cadence_days is not None
-            and (days_since is None or days_since > cadence_days)
-        )
+        stale = bool(cadence_days is not None and (days_since is None or days_since > cadence_days))
+
+        theme_raw = (soa_raw or {}).get("theme")
+        theme = _coerce_theme(theme_raw)
 
         return ControlStatus(
             control_id=control_id,
-            title=(soa_raw or {}).get("title", ""),
-            theme=(soa_raw or {}).get("theme"),
+            title=str((soa_raw or {}).get("title") or ""),
+            theme=theme,
             soa=soa_entry,
             implementation_statement_present=impl_path is not None,
             implementation_statement_path=impl_path,

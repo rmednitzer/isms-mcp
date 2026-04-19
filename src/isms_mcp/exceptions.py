@@ -16,4 +16,4 @@ class WorkspaceNotConfigured(IsmsMcpError):
 
 
 class ClassificationDenied(IsmsMcpError):
-    """Raised when an entry would be returned but the active transport disallows its classification."""
+    """Raised when an entry is blocked by transport classification policy."""

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from isms_mcp import MCP_SPEC_REVISION, audit
 from isms_mcp.context import ServerContext
@@ -13,21 +13,21 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def _get(d: dict | None, key: str, default=None):
+def _get(d: dict[str, Any] | None, key: str, default: Any = None) -> Any:
     if not isinstance(d, dict):
         return default
     val = d.get(key, default)
     return val if val is not None else default
 
 
-def _stringify_date(value) -> str | None:
+def _stringify_date(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
 
 
 def build(ctx: ServerContext) -> IsmsInfo:
-    config: dict = {}
+    config: dict[str, Any] = {}
     if ctx.workspace.exists("instance/config.yaml"):
         parsed = parse_yaml(ctx.workspace.safe_read_text("instance/config.yaml"))
         if isinstance(parsed, dict):
@@ -51,7 +51,7 @@ def build(ctx: ServerContext) -> IsmsInfo:
     )
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:
     @mcp.tool()
     def isms_info() -> IsmsInfo:
         """Orientation snapshot of the ISMS workspace.

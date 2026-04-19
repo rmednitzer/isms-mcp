@@ -1,4 +1,4 @@
-"""register_query: unified, schema-aware query across the six registers."""
+"""register_query: unified query across assets, facilities, networks, suppliers, and data."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def register(mcp: "FastMCP", ctx: ServerContext) -> None:
+def register(mcp: FastMCP, ctx: ServerContext) -> None:
     @mcp.tool()
     def register_query(
         register: RegisterName,

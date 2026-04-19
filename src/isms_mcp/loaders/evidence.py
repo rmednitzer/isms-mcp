@@ -35,7 +35,7 @@ def scan_attestations(workspace: WorkspaceRoot) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for path in workspace.safe_rglob(EVIDENCE_DIR, "*.json"):
         try:
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
         except (OSError, json.JSONDecodeError):
             continue

@@ -10,7 +10,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # =========================================================================
 # Pagination
 # =========================================================================
@@ -51,9 +50,7 @@ class IsmsInfo(BaseModel):
 
 ThemeName = Literal["organisational", "people", "physical", "technological"]
 ApplicableFlag = Literal["yes", "no"]
-ControlStatusName = Literal[
-    "not_assessed", "planned", "implementing", "implemented", "monitored"
-]
+ControlStatusName = Literal["not_assessed", "planned", "implementing", "implemented", "monitored"]
 
 
 class SoaEntry(BaseModel):
@@ -174,9 +171,7 @@ class RegisterQueryResult(BaseModel):
 # Risk
 # =========================================================================
 
-RiskStatus = Literal[
-    "identified", "assessed", "treating", "treated", "accepted", "closed"
-]
+RiskStatus = Literal["identified", "assessed", "treating", "treated", "accepted", "closed"]
 RiskTreatment = Literal["accept", "mitigate", "transfer", "avoid"]
 RatingLow = Literal["low", "medium", "high", "severe"]
 
