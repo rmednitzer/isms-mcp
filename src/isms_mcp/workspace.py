@@ -41,7 +41,9 @@ class WorkspaceRoot:
         for sub in ALLOWED_SUBTREES:
             prefix = (root / sub).resolve()
             if not prefix.is_relative_to(root):
-                raise WorkspaceNotConfigured(f"allow-listed subtree escapes workspace root: {sub}")
+                raise WorkspaceNotConfigured(
+                    f"allow-listed subtree escapes workspace root: {sub} -> {prefix}"
+                )
             prefixes.append(prefix)
         return cls(root=root, allowed_prefixes=tuple(prefixes))
 
@@ -148,9 +150,17 @@ class WorkspaceRoot:
             return None
         if text.startswith("ref:"):
             ref_name = text.split(":", 1)[1].strip()
-            if not ref_name.startswith("refs/") or ".." in ref_name or Path(ref_name).is_absolute():
+            ref_path = Path(ref_name)
+            if ref_path.is_absolute():
                 return None
-            ref_file = (git_dir / ref_name).resolve()
+            ref_parts = ref_path.parts
+            if (
+                not ref_parts
+                or ref_parts[0] != "refs"
+                or any(part in {"..", ".", ""} for part in ref_parts)
+            ):
+                return None
+            ref_file = (git_dir / ref_path).resolve()
             if not ref_file.is_relative_to(git_dir) or not ref_file.is_file():
                 return None
             try:
