@@ -1,0 +1,15 @@
+isms-mcp
+Copyright 2026 isms-mcp contributors
+
+This product includes software developed by the isms-mcp contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+This software is a read-only Model Context Protocol overlay for the
+ISMS workspace at https://github.com/rmednitzer/isms. It is independent
+of and not required by the ISMS itself; per DEC-2026-008 of that
+repository, the overlay is non-normative for evidence reproducibility.
