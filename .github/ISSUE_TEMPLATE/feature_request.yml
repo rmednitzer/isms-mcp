@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest an improvement to the MCP overlay tools or workspace access.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement. Proposals must respect the
+        hard constraints in README.md (read-only, workspace-scoped, no bind
+        without auth).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the feature or improvement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this change useful? Which AI-client workflow does it improve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative approaches you considered.

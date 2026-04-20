@@ -1,16 +1,27 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
+    reviewers:
+      - rmednitzer
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
     groups:
       actions:
         patterns: ["*"]
-  - package-ecosystem: "pip"
-    directory: "/"
+
+  - package-ecosystem: pip
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
+    reviewers:
+      - rmednitzer
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5
     groups:
       python-deps:
         patterns: ["*"]
