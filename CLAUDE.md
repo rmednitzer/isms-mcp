@@ -22,13 +22,16 @@ relaxes one needs an explicit user decision.
    shells out (`git`, `make`, subprocess), mutates env, or modifies state.
    The audit log under `$XDG_STATE_HOME/isms-mcp/` is the *only* permitted
    write, and it is best-effort and structural-metadata-only.
-2. **Workspace allow-list.** Every workspace read goes through
-   `WorkspaceRoot.safe_read_text` / `safe_iterdir` / `safe_rglob`. Paths are
-   canonicalised with `Path.resolve(strict=True)` and rejected if they fall
-   outside `docs`, `template`, `instance`, or `framework-refs`. Symlinks are
-   followed, then the resolved target is re-checked. NUL bytes and absolute
-   paths are rejected up front. Don't add filesystem reads that bypass these
-   methods.
+2. **Workspace allow-list.** Path discovery and one-shot text reads go
+   through `WorkspaceRoot.safe_read_text` / `safe_iterdir` / `safe_rglob`.
+   Paths are canonicalised with `Path.resolve(strict=True)` and rejected if
+   they fall outside `docs`, `template`, `instance`, or `framework-refs`.
+   Symlinks are followed, then the resolved target is re-checked. NUL bytes
+   and absolute paths are rejected up front. Once `safe_rglob`/`safe_iterdir`
+   has yielded a path, it has already been validated, so a bare `open(path)`
+   on the yielded value is safe — `loaders/evidence.py` (JSON attestations)
+   and `loaders/decisions.py` (DEC frontmatter) do exactly this. Don't
+   construct workspace paths any other way.
 3. **No `0.0.0.0` bind without auth.** stdio is the default transport. HTTP
    requires `ISMS_MCP_HTTP_TOKEN`. Binding `0.0.0.0` requires the literal
    opt-in `ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk`.
@@ -73,15 +76,24 @@ sync when you add or rename a tool.
 
 ## Architectural rules
 
-- **Layering.** `__main__` → `tools/` → `loaders/` → `workspace`. Tools never
-  read files directly; loaders never know about MCP. Don't reach across
-  layers.
+- **Layering.** `__main__` → `tools/` → `loaders/` → `workspace`. Tools
+  delegate file reads to loaders; loaders never know about MCP. The lone
+  exception is `tools/overview.py`, which reads `instance/config.yaml`
+  directly via `parse_yaml(workspace.safe_read_text(...))` because no
+  loader exists for it — preserve that pattern (or extract a loader) but
+  don't add new direct reads to other tools.
 - **Loader fallback.** Every loader probes `instance/...` first, then
   `template/...`, returning `None`/`[]` if neither exists. Empty workspace is
   a normal v1 state — never raise on absence.
-- **Tolerant parsing.** Loaders silently skip non-dict YAML, malformed JSON,
-  unreadable files. They never raise to a tool. Type-narrow at the loader
-  boundary (`isinstance(data, dict)`); tools assume well-typed input.
+- **Tolerant parsing — partial.** Loaders narrow YAML output with
+  `isinstance(data, dict)` so non-dict YAML degrades to an empty result.
+  `loaders/evidence.py` and `loaders/decisions.py` additionally swallow
+  `OSError` (and `JSONDecodeError` for evidence) on a per-file basis when
+  scanning trees. **YAML parse errors are *not* caught**: `_yaml.parse_yaml`
+  delegates straight to `ruamel.yaml`, so malformed `soa.yaml`,
+  `evidence-plan.yaml`, etc. will raise out of the loader and surface as a
+  tool error. If you need true tolerance for a new YAML loader, add explicit
+  `try/except YAMLError` at the call site.
 - **Pydantic for I/O.** Every tool input/output is a Pydantic model in
   `models.py`. FastMCP derives JSON Schemas from these and the agent receives
   structured output (MCP spec revision `2025-11-25`, see `__init__.py`).
@@ -180,8 +192,10 @@ All via environment variables; there is no config file.
 - Add a write path. Anywhere. (Audit log is the sole exception, and it's
   already there.)
 - Shell out, invoke `git`, run `make`, or import anything that does.
-- Read a workspace path with bare `open()` / `Path.read_text()`. Use
-  `WorkspaceRoot` methods.
+- Read a workspace path with bare `open()` / `Path.read_text()` on a path
+  you constructed yourself. Discover paths with `WorkspaceRoot` methods
+  first; reading a path that `safe_rglob` already yielded is fine (see
+  `loaders/evidence.py`).
 - Introduce a config file or a global mutable singleton.
 - Add a dependency without justifying it; the runtime deps are deliberately
   minimal (`mcp`, `pydantic`, `ruamel.yaml`, `jsonschema`, `python-dateutil`).
