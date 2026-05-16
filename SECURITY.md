@@ -31,8 +31,9 @@ security properties:
   via `WorkspaceRoot`. Symlink targets are resolved and verified.
 - **No mutations.** The server never writes to the filesystem, invokes
   `git`, runs `make`, or modifies state.
-- **No `0.0.0.0` bind without explicit opt-in.** HTTP transport binds to
-  `127.0.0.1` by default; binding all interfaces requires setting
+- **No non-loopback bind without explicit opt-in.** HTTP transport binds to
+  `127.0.0.1` by default; binding any non-loopback address (including
+  `0.0.0.0`, `::`, or a specific routable IP) requires setting
   `ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk`.
 - **Bearer token required for HTTP.** The `ISMS_MCP_HTTP_TOKEN` environment
   variable is mandatory when using HTTP transport.

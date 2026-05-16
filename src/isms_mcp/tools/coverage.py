@@ -6,6 +6,7 @@ from datetime import date
 from typing import TYPE_CHECKING, Any
 
 from isms_mcp import audit
+from isms_mcp._coerce import coerce_int
 from isms_mcp.context import ServerContext
 from isms_mcp.loaders.controls import implementation_statement_path, load_evidence_plan
 from isms_mcp.loaders.evidence import collected_date, latest_per_task, scan_attestations
@@ -66,7 +67,8 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:
                 continue
             best_age: int | None = None
             cadence_min = min(
-                (int(t["cadence_days"]) for t in tasks if t.get("cadence_days")), default=None
+                (v for t in tasks if (v := coerce_int(t.get("cadence_days"))) is not None),
+                default=None,
             )
             for t in tasks:
                 tid = str(t.get("id", ""))

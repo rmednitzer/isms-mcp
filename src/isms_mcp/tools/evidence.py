@@ -6,6 +6,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from isms_mcp import audit
+from isms_mcp._coerce import coerce_int
 from isms_mcp.context import ServerContext
 from isms_mcp.loaders.controls import load_evidence_plan
 from isms_mcp.loaders.evidence import collected_date, latest_per_task, scan_attestations
@@ -36,7 +37,7 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:
         for task in plan:
             tid = str(task.get("id", ""))
             cids = [str(cid) for cid in (task.get("control_ids") or []) if cid is not None]
-            cadence = task.get("cadence_days")
+            cadence = coerce_int(task.get("cadence_days"))
             owner = task.get("owner_role")
             sop_ref = task.get("sop_ref")
             if control_id_prefix and not any(c.startswith(control_id_prefix) for c in cids):
@@ -50,7 +51,7 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:
                 row_state = "never"
             else:
                 age = (today - d).days
-                row_state = "stale" if (cadence is not None and age > int(cadence)) else "ok"
+                row_state = "stale" if (cadence is not None and age > cadence) else "ok"
             if state not in {"all", row_state}:
                 continue
             last_collected_at = (
@@ -60,7 +61,7 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:
                 EvidenceAgeEntry(
                     task_id=tid,
                     control_ids=cids,
-                    cadence_days=int(cadence) if cadence is not None else None,
+                    cadence_days=cadence,
                     last_collected_at=last_collected_at,
                     age_days=age,
                     state=row_state,
