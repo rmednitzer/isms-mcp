@@ -6,6 +6,7 @@ from datetime import date
 from typing import TYPE_CHECKING, Any, cast
 
 from isms_mcp import audit
+from isms_mcp._coerce import coerce_int
 from isms_mcp._pagination import paginate
 from isms_mcp.context import ServerContext
 from isms_mcp.loaders.controls import (
@@ -154,7 +155,7 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:  # noqa: PLR0915
                 control_ids=[
                     str(task_id) for task_id in (t.get("control_ids") or []) if task_id is not None
                 ],
-                cadence_days=t.get("cadence_days"),
+                cadence_days=coerce_int(t.get("cadence_days")),
                 mode=t.get("mode"),
                 owner_role=t.get("owner_role"),
                 sop_ref=t.get("sop_ref"),

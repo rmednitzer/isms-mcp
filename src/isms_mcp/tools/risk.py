@@ -50,6 +50,8 @@ def register(mcp: FastMCP, ctx: ServerContext) -> None:
             items = [r for r in items if r.get("owner") == owner]
         if asset_ref is not None:
             items = [r for r in items if asset_ref in (r.get("asset_refs") or [])]
+        items = ctx.filter_classification(items, field="classification")
+        items = ctx.filter_classification(items, field="classification_handled")
         page_items, pagination = paginate(items, page, page_size)
         result = RiskQueryResult(items=page_items, pagination=pagination)
         audit.record(

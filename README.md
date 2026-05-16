@@ -20,11 +20,13 @@ reproducibility.
   root via `ISMS_MCP_WORKSPACE`, canonicalises it with
   `Path.resolve(strict=True)`, and rejects every path outside the four
   allow-listed subtrees (`docs`, `template`, `instance`, `framework-refs`).
-- **No `0.0.0.0` bind without auth.** stdio transport is the default; HTTP is
-  optional and requires a bearer token.
+- **No non-loopback bind without explicit opt-in.** stdio transport is the
+  default; HTTP is optional and always requires a bearer token. The token
+  alone does not enable off-host exposure: HTTP binds `127.0.0.1` unless
+  `ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk` is set explicitly.
 - **No dependency on `mcp-remote`.**
 
-See [docs/security.md](docs/security.md) for the CVE-informed defences.
+See [SECURITY.md](SECURITY.md) for the full security model and reporting.
 
 ## Installation
 
@@ -54,8 +56,8 @@ uvx isms-mcp
 }
 ```
 
-See [docs/claude-desktop.md](docs/claude-desktop.md) for the full registration
-guide.
+The JSON block above is the complete registration; set `ISMS_MCP_WORKSPACE` to
+the absolute path of your ISMS workspace clone.
 
 ## Tools
 

@@ -15,6 +15,11 @@ from isms_mcp.context import ServerContext, TransportMode
 from isms_mcp.tools import register_all
 from isms_mcp.workspace import WorkspaceRoot
 
+# Note: the empty string is deliberately NOT loopback. Many servers treat an
+# empty bind host as INADDR_ANY (all interfaces), so it must require the opt-in.
+_LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+_MAX_PORT = 65535
+
 
 def _transport_mode() -> TransportMode:
     raw = os.environ.get("ISMS_MCP_TRANSPORT", "stdio").lower()
@@ -25,6 +30,28 @@ def _transport_mode() -> TransportMode:
         file=sys.stderr,
     )
     sys.exit(1)
+
+
+def _is_loopback(host: str) -> bool:
+    """True for loopback-only binds. ``0.0.0.0`` and ``::`` (all interfaces)
+    and any specific routable address are NOT loopback and require the
+    explicit opt-in before the server will expose itself off-host."""
+    return host.strip().lower() in _LOOPBACK_HOSTS
+
+
+def _http_port() -> int:
+    raw = os.environ.get("ISMS_MCP_HTTP_PORT", "8765")
+    try:
+        port = int(raw)
+    except ValueError:
+        port = -1
+    if not 1 <= port <= _MAX_PORT:
+        print(
+            f"isms-mcp: invalid ISMS_MCP_HTTP_PORT={raw!r}; expected an integer 1-{_MAX_PORT}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return port
 
 
 def main() -> None:
@@ -52,11 +79,11 @@ def main() -> None:
             print("isms-mcp: ISMS_MCP_HTTP_TOKEN is required for HTTP transport", file=sys.stderr)
             sys.exit(1)
         host = os.environ.get("ISMS_MCP_HTTP_HOST", "127.0.0.1")
-        port = int(os.environ.get("ISMS_MCP_HTTP_PORT", "8765"))
+        port = _http_port()
         allow_any = os.environ.get("ISMS_MCP_HTTP_ALLOW_ANY")
-        if host == "0.0.0.0" and allow_any != "yes-i-understand-the-risk":  # noqa: S104
+        if not _is_loopback(host) and allow_any != "yes-i-understand-the-risk":
             print(
-                "isms-mcp: binding 0.0.0.0 requires "
+                f"isms-mcp: binding non-loopback host {host!r} requires "
                 "ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk",
                 file=sys.stderr,
             )

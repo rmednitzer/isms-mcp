@@ -32,9 +32,13 @@ relaxes one needs an explicit user decision.
    on the yielded value is safe — `loaders/evidence.py` (JSON attestations)
    and `loaders/decisions.py` (DEC frontmatter) do exactly this. Don't
    construct workspace paths any other way.
-3. **No `0.0.0.0` bind without auth.** stdio is the default transport. HTTP
-   requires `ISMS_MCP_HTTP_TOKEN`. Binding `0.0.0.0` requires the literal
-   opt-in `ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk`.
+3. **No non-loopback bind without explicit opt-in.** stdio is the default
+   transport. HTTP always requires `ISMS_MCP_HTTP_TOKEN`; the token alone is
+   not sufficient for off-host exposure. Binding any non-loopback host
+   (`0.0.0.0`,
+   `::`, or a specific routable IP; loopback set is `127.0.0.1`/`::1`/
+   `localhost`) requires the literal opt-in
+   `ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk`.
 4. **No `mcp-remote` dependency.**
 5. **Classification filter on HTTP.** `classification: restricted` entries
    are dropped over HTTP unless `ISMS_MCP_ALLOW_RESTRICTED=true`. Apply

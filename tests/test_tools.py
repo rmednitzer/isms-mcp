@@ -134,6 +134,7 @@ def populated_workspace(workspace: WorkspaceRoot) -> WorkspaceRoot:
         "    treatment: mitigate\n"
         "    residual_rating: high\n"
         "    owner: dpo\n"
+        "    classification: restricted\n"
     )
 
     # Calendar
@@ -319,6 +320,24 @@ class TestRiskQuery:
         result = mcp.tools["risk_query"](asset_ref="ASSET-001")
         assert result.pagination.total == 1
 
+    def test_classification_filter_restricted_denied(
+        self, populated_workspace: WorkspaceRoot
+    ) -> None:
+        ctx = ServerContext(
+            workspace=populated_workspace,
+            transport_mode="http",
+            allow_restricted=False,
+        )
+        m = DummyMcp()
+        register_all(m, ctx)
+        result = m.tools["risk_query"]()
+        assert result.pagination.total == 1
+        assert result.items[0]["id"] == "R-001"
+
+    def test_classification_restricted_allowed_on_stdio(self, mcp: DummyMcp) -> None:
+        result = mcp.tools["risk_query"]()
+        assert result.pagination.total == 2
+
 
 # =========================================================================
 # evidence_age
@@ -395,3 +414,62 @@ def test_register_all_registers_expected_tools() -> None:
         "control_coverage",
         "regulatory_calendar",
     }
+
+
+# =========================================================================
+# Junk cadence_days must degrade, not crash (regression)
+# =========================================================================
+
+
+class TestJunkCadenceDoesNotCrash:
+    @pytest.fixture()
+    def junk_mcp(self, workspace: WorkspaceRoot) -> DummyMcp:
+        root = workspace.root
+        soa_dir = root / "instance" / "governance" / "soa"
+        soa_dir.mkdir(parents=True, exist_ok=True)
+        (soa_dir / "soa.yaml").write_text(
+            "controls:\n"
+            "  - id: A.5.1\n"
+            "    title: Policies\n"
+            "    theme: organisational\n"
+            "    applicable: yes\n"
+            "    status: implemented\n"
+        )
+        ctrl_dir = root / "instance" / "governance" / "controls"
+        ctrl_dir.mkdir(parents=True, exist_ok=True)
+        (ctrl_dir / "evidence-plan.yaml").write_text(
+            "evidence_tasks:\n"
+            "  - id: ET-001\n"
+            "    control_ids: [A.5.1]\n"
+            "    cadence_days: ninety\n"
+            "    owner_role: ciso\n"
+        )
+        (ctrl_dir / "mapping.yaml").write_text("mappings: []\n")
+        ev_dir = root / "instance" / "evidence" / "ET-001"
+        ev_dir.mkdir(parents=True, exist_ok=True)
+        (ev_dir / "att.json").write_text(
+            json.dumps(
+                {
+                    "evidence_task_id": "ET-001",
+                    "control_id": "A.5.1",
+                    "collected_at": "2026-01-01T00:00:00Z",
+                }
+            )
+        )
+        ctx = ServerContext(workspace=workspace, transport_mode="stdio", allow_restricted=True)
+        m = DummyMcp()
+        register_all(m, ctx)
+        return m
+
+    def test_evidence_age_survives(self, junk_mcp: DummyMcp) -> None:
+        result = junk_mcp.tools["evidence_age"](state="all")
+        assert result.total == 1
+        assert result.items[0].cadence_days is None
+
+    def test_control_coverage_survives(self, junk_mcp: DummyMcp) -> None:
+        result = junk_mcp.tools["control_coverage"](applicable_only=False)
+        assert result.total_controls == 1
+
+    def test_control_status_survives(self, junk_mcp: DummyMcp) -> None:
+        result = junk_mcp.tools["control_status"](control_id="A.5.1")
+        assert result.cadence_days is None
