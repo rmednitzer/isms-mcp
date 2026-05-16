@@ -20,8 +20,9 @@ reproducibility.
   root via `ISMS_MCP_WORKSPACE`, canonicalises it with
   `Path.resolve(strict=True)`, and rejects every path outside the four
   allow-listed subtrees (`docs`, `template`, `instance`, `framework-refs`).
-- **No non-loopback bind without auth.** stdio transport is the default; HTTP
-  is optional, requires a bearer token, and binds `127.0.0.1` unless
+- **No non-loopback bind without explicit opt-in.** stdio transport is the
+  default; HTTP is optional and always requires a bearer token. The token
+  alone does not enable off-host exposure: HTTP binds `127.0.0.1` unless
   `ISMS_MCP_HTTP_ALLOW_ANY=yes-i-understand-the-risk` is set explicitly.
 - **No dependency on `mcp-remote`.**
 

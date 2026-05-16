@@ -15,7 +15,10 @@ from isms_mcp.context import ServerContext, TransportMode
 from isms_mcp.tools import register_all
 from isms_mcp.workspace import WorkspaceRoot
 
-_LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost", ""}
+# Note: the empty string is deliberately NOT loopback. Many servers treat an
+# empty bind host as INADDR_ANY (all interfaces), so it must require the opt-in.
+_LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+_MAX_PORT = 65535
 
 
 def _transport_mode() -> TransportMode:
@@ -39,13 +42,16 @@ def _is_loopback(host: str) -> bool:
 def _http_port() -> int:
     raw = os.environ.get("ISMS_MCP_HTTP_PORT", "8765")
     try:
-        return int(raw)
+        port = int(raw)
     except ValueError:
+        port = -1
+    if not 1 <= port <= _MAX_PORT:
         print(
-            f"isms-mcp: invalid ISMS_MCP_HTTP_PORT={raw!r}; expected an integer",
+            f"isms-mcp: invalid ISMS_MCP_HTTP_PORT={raw!r}; expected an integer 1-{_MAX_PORT}",
             file=sys.stderr,
         )
         sys.exit(1)
+    return port
 
 
 def main() -> None:
