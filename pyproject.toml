@@ -21,7 +21,7 @@ classifiers = [
   "Topic :: Security",
 ]
 dependencies = [
-  "mcp>=1.12",
+  "mcp>=1.12,<2",
   "pydantic>=2.6",
   "ruamel.yaml>=0.18",
   "jsonschema>=4.21",
